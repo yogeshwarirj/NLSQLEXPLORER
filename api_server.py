@@ -123,7 +123,7 @@ def validate_connection_params(params: dict) -> List[str]:
     errors = []
     
     host = params.get('host', '')
-    if not host or not re.match(r'^[a-zA-Z0-9\.\-]+, host):
+    if not host or not re.match(r'^[a-zA-Z0-9\.\-]+$', host):
         errors.append("Invalid host format (alphanumeric, dots, hyphens only)")
     
     port = params.get('port', '')
