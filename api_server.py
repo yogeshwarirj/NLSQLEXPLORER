@@ -159,7 +159,7 @@ def validate_and_sanitize(sql_text: str) -> str:
     sql_text = sql_text.strip()
     
     # Layer 1: Remove SQL comments (prevent comment-based bypasses)
-    sql_text = re.sub(r'--.*, '', sql_text, flags=re.MULTILINE)
+    sql_text = re.sub(r'--.*', '', sql_text, flags=re.MULTILINE)
     sql_text = re.sub(r'/\*.*?\*/', '', sql_text, flags=re.DOTALL)
     sql_text = sql_text.strip()
     
