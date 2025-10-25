@@ -1,0 +1,4 @@
+┌─────────────────┐      REST API      ┌──────────────────┐      LangChain    ┌──────────┐
+│  Lovable React  │ ←───────────────→  │   Flask/FastAPI  │ ←─────────────→   │ Database │
+│    Frontend     │   (JSON/HTTP)      │     Backend      │   (SQLAlchemy)    │  (Any DB)│
+└─────────────────┘                    └──────────────────┘                   └──────────┘
