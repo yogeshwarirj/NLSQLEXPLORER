@@ -5,8 +5,8 @@ Features: SQL injection protection, rate limiting, session management, logging s
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+"""from flask_limiter import Limiter"""
+"""from flask_limiter.util import get_remote_address"""
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
 from urllib.parse import quote_plus
