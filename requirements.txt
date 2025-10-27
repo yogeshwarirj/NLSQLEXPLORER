@@ -3,17 +3,17 @@ Flask==3.0.3
 flask-cors==4.0.0
 flask-limiter==3.5.0
 
-# Database Drivers
+# Database Drivers (Python 3.12 compatible)
 SQLAlchemy==2.0.31
 pymysql==1.1.1
 psycopg2-binary==2.9.9
 cx-oracle==8.3.0
 
-# Data Processing (Compatible with Python 3.12)
-pandas
-numpy
+# Data Processing
+pandas==2.2.2
+numpy==1.26.4
 
-# LangChain - Compatible versions (CRITICAL: Install in this order)
+# LangChain (Compatible set)
 langchain-core==0.2.38
 langchain-community==0.2.16
 langchain-google-genai==1.0.10
