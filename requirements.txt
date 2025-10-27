@@ -1,17 +1,24 @@
-flask==3.0.0
-flask-cors==4.0.0
-flask-limiter==3.5.0
+# Flask Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+
+# Database Drivers
+SQLAlchemy==2.0.23
 pymysql==1.1.0
 psycopg2-binary==2.9.9
-cx-Oracle==8.3.0
-pandas
+
+# LangChain & AI
+langchain-core==0.1.52
+langchain-community==0.0.38
+langchain-google-genai==1.0.10
+
+# Data Processing
+pandas==2.1.4
 sqlparse==0.4.4
-langchain
-langchain-community
-langchain-experimental
-langchain-google-genai
-google-generativeai
-gunicorn
-SQLAlchemy==2.0.30
-typing_extensions==4.10.0
-greenlet==3.0.3
+
+# Production Server
+gunicorn==21.2.0
+
+# Utilities
+python-dotenv==1.0.1
