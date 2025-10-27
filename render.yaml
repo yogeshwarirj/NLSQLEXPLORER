@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nl2sql-api
+    name: api_server
     env: python
     region: oregon
     plan: free
@@ -8,7 +8,7 @@ services:
     startCommand: gunicorn api_server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: "3.12.7"
       - key: FLASK_ENV
         value: production
       - key: ALLOWED_ORIGINS
