@@ -10,8 +10,8 @@ psycopg2-binary==2.9.9
 cx-oracle==8.3.0
 
 # Data Processing (Compatible with Python 3.12)
-pandas==2.2.2
-numpy==1.26.4
+pandas
+numpy
 
 # LangChain - Compatible versions (CRITICAL: Install in this order)
 langchain-core==0.2.38
