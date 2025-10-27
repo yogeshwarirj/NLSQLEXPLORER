@@ -14,7 +14,8 @@ langchain-community==0.0.38
 langchain-google-genai==1.0.10
 
 # Data Processing
-pandas==2.1.4
+pandas>=2.2.0,<3.0.0
+numpy>=1.26.0,<2.0.0
 sqlparse==0.4.4
 
 # Production Server
