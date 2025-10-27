@@ -1,25 +1,30 @@
-# Flask Framework
-Flask==3.0.0
-Flask-CORS==4.0.0
-Flask-Limiter==3.5.0
+# Core Framework
+Flask==3.0.3
+flask-cors==4.0.0
+flask-limiter==3.5.0
 
 # Database Drivers
-SQLAlchemy==2.0.23
-pymysql==1.1.0
+SQLAlchemy==2.0.31
+pymysql==1.1.1
 psycopg2-binary==2.9.9
+cx-oracle==8.3.0
 
-# LangChain & AI
-langchain-core==0.1.52
-langchain-community==0.0.38
+# Data Processing (Compatible with Python 3.12)
+pandas==2.2.2
+numpy==1.26.4
+
+# LangChain - Compatible versions (CRITICAL: Install in this order)
+langchain-core==0.2.38
+langchain-community==0.2.16
 langchain-google-genai==1.0.10
+langchain==0.2.16
 
-# Data Processing
-pandas>=2.2.0,<3.0.0
-numpy>=1.26.0,<2.0.0
-sqlparse==0.4.4
-
-# Production Server
-gunicorn==21.2.0
+# Google AI
+google-generativeai==0.7.2
 
 # Utilities
+sqlparse==0.5.1
 python-dotenv==1.0.1
+
+# Production Server
+gunicorn==22.0.0
