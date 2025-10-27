@@ -12,3 +12,4 @@ langchain-community
 langchain-experimental
 langchain-google-genai
 google-generativeai
+gunicorn
