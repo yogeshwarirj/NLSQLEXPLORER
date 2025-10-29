@@ -1,5 +1,5 @@
 """
-NL2SQL API Server - Fixed Version with Updated LangChain
+NL2SQL API Server - Fixed Version with Session Management
 """
 
 from flask import Flask, request, jsonify
@@ -61,10 +61,10 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Session Management
+# Session Management - INCREASED TIMEOUT
 sessions: Dict[str, Dict[str, Any]] = {}
 sessions_lock = threading.Lock()
-SESSION_TIMEOUT = timedelta(hours=2)
+SESSION_TIMEOUT = timedelta(hours=8)  # Increased from 2 to 8 hours
 
 # Query Limits
 MAX_ROWS = 10000
@@ -254,19 +254,21 @@ Respond with ONLY the chart type."""
     except:
         return 'bar'
 
-# ==================== SESSION MANAGEMENT ====================
+# ==================== IMPROVED SESSION MANAGEMENT ====================
 
 def get_session(session_id: str):
-    """Get session with expiry check"""
+    """Get session with expiry check and auto-refresh on activity"""
     with sessions_lock:
         if session_id not in sessions:
             return None
         
         session = sessions[session_id]
         created_at = session.get('created_at', datetime.now())
+        last_activity = session.get('last_activity', created_at)
         
-        if datetime.now() - created_at > SESSION_TIMEOUT:
-            logging.info(f"Session expired: {session_id[:8]}...")
+        # Check if session has been inactive for too long
+        if datetime.now() - last_activity > SESSION_TIMEOUT:
+            logging.info(f"Session expired due to inactivity: {session_id[:8]}...")
             try:
                 session['engine'].dispose()
             except:
@@ -274,17 +276,21 @@ def get_session(session_id: str):
             del sessions[session_id]
             return None
         
+        # Update last activity timestamp to keep session alive
+        session['last_activity'] = datetime.now()
+        logging.debug(f"Session activity updated: {session_id[:8]}...")
+        
         return session
 
 def cleanup_expired_sessions():
-    """Remove expired sessions"""
+    """Remove expired sessions based on last activity"""
     with sessions_lock:
         now = datetime.now()
         expired = []
         
         for sid, data in list(sessions.items()):
-            created_at = data.get('created_at', now)
-            if now - created_at > SESSION_TIMEOUT:
+            last_activity = data.get('last_activity', data.get('created_at', now))
+            if now - last_activity > SESSION_TIMEOUT:
                 expired.append(sid)
         
         for sid in expired:
@@ -300,7 +306,7 @@ def cleanup_expired_sessions():
 def session_cleanup_worker():
     """Background cleanup worker"""
     while True:
-        time.sleep(600)
+        time.sleep(600)  # Run every 10 minutes
         try:
             cleanup_expired_sessions()
         except Exception as e:
@@ -344,8 +350,49 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "active_sessions": len(sessions)
+        "active_sessions": len(sessions),
+        "session_timeout_hours": SESSION_TIMEOUT.total_seconds() / 3600
     })
+
+@app.route('/api/validate-session', methods=['POST'])
+@limiter.limit("60 per minute")
+def validate_session():
+    """Validate if session is still active"""
+    try:
+        data = request.json or {}
+        session_id = data.get('session_id', '').strip()
+        
+        if not session_id:
+            return jsonify({
+                "valid": False, 
+                "message": "Session ID required"
+            }), 400
+        
+        session = get_session(session_id)
+        if not session:
+            return jsonify({
+                "valid": False, 
+                "message": "Invalid or expired session. Please reconnect to the database."
+            }), 401
+        
+        # Session is valid and has been refreshed by get_session()
+        return jsonify({
+            "valid": True,
+            "message": "Session is active",
+            "session_info": {
+                "db_type": session.get('db_type'),
+                "created_at": session.get('created_at').isoformat(),
+                "last_activity": session.get('last_activity').isoformat(),
+                "expires_in_hours": round((SESSION_TIMEOUT - (datetime.now() - session.get('last_activity'))).total_seconds() / 3600, 2)
+            }
+        })
+    
+    except Exception as e:
+        logging.error(f"Session validation error: {e}")
+        return jsonify({
+            "valid": False, 
+            "message": "Session validation failed"
+        }), 500
 
 @app.route('/api/test-gemini', methods=['POST'])
 @limiter.limit("20 per minute")
@@ -356,7 +403,7 @@ def test_gemini():
         api_key = data.get('api_key', '').strip()
         
         if not api_key or not api_key.startswith('AIza'):
-            return jsonify({"valid": False, "message": "Invalid API key"}), 400
+            return jsonify({"valid": False, "message": "Invalid API key format"}), 400
         
         test_llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-exp",
@@ -414,7 +461,7 @@ def connect_db():
             else:
                 return jsonify({"connected": False, "message": "Oracle needs SID or Service Name"}), 400
         else:
-            return jsonify({"connected": False, "message": f"Unsupported: {db_type}"}), 400
+            return jsonify({"connected": False, "message": f"Unsupported database type: {db_type}"}), 400
         
         engine = create_db_engine(DB_URI, db_type)
         
@@ -466,6 +513,7 @@ SQL Query:"""
         
         session_id = create_session_id(db_type, host, database, username, password)
         
+        now = datetime.now()
         with sessions_lock:
             sessions[session_id] = {
                 "engine": engine,
@@ -473,21 +521,23 @@ SQL Query:"""
                 "llm": llm,
                 "chain": chain,
                 "db_type": db_type,
-                "created_at": datetime.now()
+                "created_at": now,
+                "last_activity": now  # Initialize last activity
             }
         
-        logging.info(f"Connected: {db_type}@{host}/{database}")
+        logging.info(f"✅ Connected: {db_type}@{host}/{database} | Session: {session_id[:8]}...")
         
         return jsonify({
             "connected": True,
             "message": "Connected successfully",
             "session_id": session_id,
             "tables": table_names[:20],
-            "table_count": len(table_names)
+            "table_count": len(table_names),
+            "session_timeout_hours": SESSION_TIMEOUT.total_seconds() / 3600
         })
     
     except Exception as e:
-        logging.error(f"Connection failed: {e}")
+        logging.error(f"❌ Connection failed: {e}")
         return jsonify({"connected": False, "message": str(e)}), 400
 
 @app.route('/api/execute-query', methods=['POST'])
@@ -504,9 +554,14 @@ def execute_query():
         if not session_id:
             return jsonify({"error": "Session ID required"}), 400
         
+        # Validate session - this also refreshes the session timestamp
         session = get_session(session_id)
         if not session:
-            return jsonify({"error": "Invalid/expired session"}), 401
+            return jsonify({
+                "error": "Invalid or expired session",
+                "message": "Your session has expired. Please reconnect to the database.",
+                "session_expired": True
+            }), 401
         
         engine = session['engine']
         llm = session['llm']
@@ -525,11 +580,11 @@ def execute_query():
                     time.sleep(2 ** attempt)
                     continue
                 elif "429" in str(e):
-                    return jsonify({"error": "Gemini rate limit exceeded"}), 429
+                    return jsonify({"error": "Gemini API rate limit exceeded. Please try again in a moment."}), 429
                 raise
         
         if not sql:
-            return jsonify({"error": "Failed to generate SQL"}), 500
+            return jsonify({"error": "Failed to generate SQL query"}), 500
         
         # Validate SQL
         try:
@@ -545,7 +600,7 @@ def execute_query():
                 "success": True,
                 "sql": validated_sql,
                 "results": {"columns": columns, "rows": [], "row_count": 0},
-                "message": "No results",
+                "message": "Query executed successfully but returned no results",
                 "chart_recommendation": "table"
             })
         
@@ -554,6 +609,8 @@ def execute_query():
         df = pd.DataFrame(rows, columns=columns)
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
         categorical_cols = [col for col in columns if col not in numeric_cols]
+        
+        logging.info(f"✅ Query executed: {len(rows)} rows | Session: {session_id[:8]}...")
         
         return jsonify({
             "success": True,
@@ -564,7 +621,7 @@ def execute_query():
         })
     
     except Exception as e:
-        logging.error(f"Query error: {e}")
+        logging.error(f"❌ Query error: {e}")
         return jsonify({"error": "Query execution failed", "details": str(e)}), 500
 
 @app.route('/api/disconnect', methods=['POST'])
@@ -579,12 +636,14 @@ def disconnect():
                 if session_id in sessions:
                     try:
                         sessions[session_id]['engine'].dispose()
-                    except:
-                        pass
+                        logging.info(f"🔌 Disconnected session: {session_id[:8]}...")
+                    except Exception as e:
+                        logging.error(f"Error disposing engine: {e}")
                     del sessions[session_id]
         
-        return jsonify({"success": True, "message": "Disconnected"})
+        return jsonify({"success": True, "message": "Disconnected successfully"})
     except Exception as e:
+        logging.error(f"Disconnect error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get-tables', methods=['POST'])
@@ -597,11 +656,16 @@ def get_tables():
         
         session = get_session(session_id)
         if not session:
-            return jsonify({"error": "Invalid session"}), 401
+            return jsonify({
+                "error": "Invalid or expired session",
+                "message": "Your session has expired. Please reconnect to the database.",
+                "session_expired": True
+            }), 401
         
         tables = session['db'].get_usable_table_names()
         return jsonify({"success": True, "tables": tables, "count": len(tables)})
     except Exception as e:
+        logging.error(f"Get tables error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==================== STARTUP ====================
@@ -614,6 +678,8 @@ if __name__ == '__main__':
     print("🚀 NL2SQL API Server Starting...")
     print(f"📍 Port: {port}")
     print(f"🔒 Security: Enhanced")
+    print(f"⏱️  Session Timeout: {SESSION_TIMEOUT.total_seconds() / 3600} hours")
+    print(f"📊 Max Rows per Query: {MAX_ROWS}")
     print("=" * 60)
     
     app.run(host='0.0.0.0', port=port, debug=debug)
