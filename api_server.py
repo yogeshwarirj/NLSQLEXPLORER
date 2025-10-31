@@ -447,10 +447,16 @@ def connect_db():
         
         encoded_password = quote_plus(password)
         
+        # Get SSL mode (optional)
+        ssl_mode = data.get('ssl_mode', 'disable').strip()
+        
         if db_type == 'mysql':
             DB_URI = f"mysql+pymysql://{username}:{encoded_password}@{host}:{port}/{database}"
         elif db_type == 'postgresql':
             DB_URI = f"postgresql+psycopg2://{username}:{encoded_password}@{host}:{port}/{database}"
+            # Add SSL mode for PostgreSQL if not localhost
+            if host not in ['localhost', '127.0.0.1'] or ssl_mode != 'disable':
+                DB_URI += f"?sslmode={ssl_mode}"
         elif db_type == 'oracle':
             sid = data.get('sid', '').strip()
             service_name = data.get('service_name', '').strip()
