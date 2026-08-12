@@ -177,7 +177,14 @@ LIMIT 10;
 The generated SQL is validated before being sent to the database.
 
 ---
+### Session Management
 
+The current implementation uses in-memory session storage:
+
+```python
+sessions = {}
+
+---
 ## 📊 Visualization Recommendation
 
 After executing a query, the application can recommend a suitable visualization based on the user's question and returned data.
