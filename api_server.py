@@ -310,7 +310,7 @@ def session_cleanup_worker():
         try:
             cleanup_expired_sessions()
         except Exception as e:
-            logging.error(f"Cleanup error: {e}")
+            logging.exception(f"Cleanup error: {e}")
 
 cleanup_thread = threading.Thread(target=session_cleanup_worker, daemon=True)
 cleanup_thread.start()
@@ -335,8 +335,9 @@ def after_request(response):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logging.error(f"Error: {str(e)}, Path: {request.path}")
-    return jsonify({"error": str(e)}), 500
+    logging.exception(f"Error: {str(e)}, Path: {request.path}")
+    return jsonify({  "error": "Internal server error",
+        "message": "Something went wrong. Please try again later." }), 500
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
@@ -388,7 +389,7 @@ def validate_session():
         })
     
     except Exception as e:
-        logging.error(f"Session validation error: {e}")
+        logging.exception(f"Session validation error: {e}")
         return jsonify({
             "valid": False, 
             "message": "Session validation failed"
@@ -543,8 +544,9 @@ SQL Query:"""
         })
     
     except Exception as e:
-        logging.error(f"❌ Connection failed: {e}")
-        return jsonify({"connected": False, "message": str(e)}), 400
+        logging.exception(f"❌ Connection failed: {e}")
+        return jsonify({""connected": False,
+        "message": "Unable to connect to the database. Please check your connection details."}), 400
 
 @app.route('/api/execute-query', methods=['POST'])
 @limiter.limit("30 per minute")
@@ -627,8 +629,9 @@ def execute_query():
         })
     
     except Exception as e:
-        logging.error(f"❌ Query error: {e}")
-        return jsonify({"error": "Query execution failed", "details": str(e)}), 500
+        logging.exception(f"❌ Query execution failed {e}")
+        return jsonify({     "error": "Query execution failed",
+        "message": "The query could not be completed. Please try again." }), 500
 
 @app.route('/api/disconnect', methods=['POST'])
 def disconnect():
@@ -644,13 +647,14 @@ def disconnect():
                         sessions[session_id]['engine'].dispose()
                         logging.info(f"🔌 Disconnected session: {session_id[:8]}...")
                     except Exception as e:
-                        logging.error(f"Error disposing engine: {e}")
+                        logging.exception(f"Error disposing engine: {e}")
                     del sessions[session_id]
         
         return jsonify({"success": True, "message": "Disconnected successfully"})
     except Exception as e:
-        logging.error(f"Disconnect error: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.exception(f"Disconnect error: {e}")
+        return jsonify({    "error": "Disconnect failed",
+        "message": "Unable to disconnect the database session."}), 500
 
 @app.route('/api/get-tables', methods=['POST'])
 @limiter.limit("20 per minute")
@@ -671,8 +675,9 @@ def get_tables():
         tables = session['db'].get_usable_table_names()
         return jsonify({"success": True, "tables": tables, "count": len(tables)})
     except Exception as e:
-        logging.error(f"Get tables error: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.exception(f"Get tables error: {e}")
+        return jsonify({    "error": "Unable to retrieve database tables",
+        "message": "Please try again." }), 500
 
 # ==================== STARTUP ====================
 
