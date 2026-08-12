@@ -1,4 +1,40 @@
-┌─────────────────┐      REST API      ┌──────────────────┐      LangChain    ┌──────────┐
-│  Lovable React  │ ←───────────────→  │   Flask/FastAPI  │ ←─────────────→   │ Database │
-│    Frontend     │   (JSON/HTTP)      │     Backend      │   (SQLAlchemy)    │  (Any DB)│
-└─────────────────┘                    └──────────────────┘                   └──────────┘
+                ┌──────────────────┐
+                │     Frontend     │
+                │   React/Lovable  │
+                └────────┬─────────┘
+                         │
+                      REST API
+                         │
+                         ▼
+                ┌──────────────────┐
+                │    Flask API     │
+                └────────┬─────────┘
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+       ┌──────────────┐      ┌──────────────┐
+       │ Gemini / LLM │      │ SQLAlchemy   │
+       │ NL → SQL     │      │ DB Engine    │
+       └──────┬───────┘      └──────┬───────┘
+              │                     │
+              ▼                     ▼
+       ┌──────────────┐      ┌──────────────┐
+       │ SQL Parser & │      │ PostgreSQL / │
+       │ Validation   │      │ MySQL/Oracle │
+       └──────────────┘      └──────────────┘
+
+
+
+
+
+User Question
+      ↓
+LLM generates SQL
+      ↓
+SQL validation
+      ↓
+Read-only DB
+      ↓
+Results
+      ↓
+Chart recommendation
