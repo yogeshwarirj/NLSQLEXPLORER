@@ -4,7 +4,7 @@ An AI-powered Natural Language to SQL application that allows users to query rel
 
 ## 🚀 Demo
 
-**Live Application:** [nl2sqlexplore](https://nl2sqlexplorer.netlify.app/)
+**Live Application:** [nl2sqlexplorer](https://nl2sqlexplorer.netlify.app/)
 
 **Backend API:** [render_url](https://nlsqlexplorer.onrender.com)
 
